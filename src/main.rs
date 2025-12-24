@@ -1,6 +1,6 @@
 mod epic;
 
-use epic::EpicResponse;
+use epic::{EpicResponse, Offer};
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -14,7 +14,12 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
     let root = serde_json::from_str::<EpicResponse>(&body)?;
 
     let offers = root.data.catalog.search_store.elements;
-    for offer in offers.iter() {
+    let free_offers: Vec<&Offer> = offers
+        .iter()
+        .filter(|offer| offer.price.total_price.discount_price == 0)
+        .collect();
+
+    for offer in free_offers.iter() {
         println!(
             "{} ({}:{}) discountPrice={}",
             offer.title,
