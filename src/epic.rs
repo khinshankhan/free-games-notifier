@@ -28,6 +28,9 @@ pub struct Offer {
     pub id: String,
     pub namespace: String,
     pub price: Price,
+
+    #[serde(default)]
+    pub promotions: Option<Promotions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,4 +43,33 @@ pub struct Price {
 pub struct TotalPrice {
     #[serde(rename = "discountPrice")]
     pub discount_price: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Promotions {
+    #[serde(rename = "promotionalOffers", default)]
+    pub promotional_offers: Vec<PromotionalOfferBlock>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PromotionalOfferBlock {
+    #[serde(rename = "promotionalOffers", default)]
+    pub promotional_offers: Vec<Promotion>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Promotion {
+    #[serde(rename = "startDate")]
+    pub start_date: String,
+    #[serde(rename = "endDate")]
+    pub end_date: String,
+
+    #[serde(rename = "discountSetting")]
+    pub discount_setting: DiscountSetting,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiscountSetting {
+    #[serde(rename = "discountPercentage")]
+    pub discount_percentage: Option<i64>,
 }
