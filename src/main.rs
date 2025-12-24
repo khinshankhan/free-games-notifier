@@ -2,15 +2,7 @@ fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
         "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=en-US";
 
-    match reqwest::blocking::get(epic_url) {
-        Ok(response) => {
-            match response.text() {
-                Ok(text) => Ok(text),
-                Err(e) => Err(e),
-            }
-        }
-        Err(e) => Err(e),
-    }
+    Ok(reqwest::blocking::get(epic_url)?.text()?)
 }
 
 fn main() {
