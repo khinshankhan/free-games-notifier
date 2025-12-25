@@ -3,8 +3,11 @@ use chrono::{DateTime, Utc};
 mod epic;
 use epic::{EpicResponse};
 
+mod format;
+use format::{store_url};
+
 mod discord;
-use discord::send_discord_webhook;
+use discord::{send_discord_webhook};
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -54,10 +57,16 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
 
     let offers = root.data.catalog.search_store.elements;
     for offer in offers.iter().filter(|o| is_free_now(o, now)) {
+        let store_link = match store_url(offer) {
+            Some(link) => link,
+            None => continue,
+        };
+
         let message = format!(
-            "Free now on Epic Games Store: {} (ID: {}, Namespace: {})",
-            offer.title, offer.id, offer.namespace
+            "**{}** is now free on Epic Games Store!\n{}",
+            offer.title, store_link
         );
+
         send_discord_webhook(&message)?;
     }
 

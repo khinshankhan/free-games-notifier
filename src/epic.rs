@@ -25,9 +25,9 @@ pub struct SearchStore {
 #[derive(Debug, Deserialize)]
 pub struct Offer {
     pub title: String,
-    pub id: String,
-    pub namespace: String,
     pub price: Price,
+    #[serde(rename = "productSlug")]
+    pub product_slug: Option<String>,
 
     #[serde(default)]
     pub promotions: Option<Promotions>,
