@@ -13,13 +13,13 @@ fn get_epic_data() -> Result<String, reqwest::Error> {
     Ok(reqwest::blocking::get(epic_url)?.text()?)
 }
 
-fn is_free_now(offer: &epic::Offer, now: DateTime<Utc>) -> bool {
+fn free_promo_ends_at(offer: &epic::Offer, now: DateTime<Utc>) -> Option<DateTime<Utc>> {
     if offer.price.total_price.discount_price != 0 {
-        return false;
+        return None;
     }
 
     let Some(promotions) = &offer.promotions else {
-        return false;
+        return None;
     };
 
     for block in &promotions.promotional_offers {
@@ -37,14 +37,15 @@ fn is_free_now(offer: &epic::Offer, now: DateTime<Utc>) -> bool {
 
             if let (Some(start), Some(end)) = (start, end) {
                 if start <= now && now < end {
-                    return true;
+                    return Some(end);
                 }
             }
         }
     }
 
-    false
+    None
 }
+
 
 fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
     let now = chrono::Utc::now();
@@ -54,9 +55,13 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
 
     let offers = root.data.catalog.search_store.elements;
     for offer in offers {
-        if !is_free_now(&offer, now) {
-            continue;
-        }
+        let ends_at = match free_promo_ends_at(&offer, now) {
+            Some(t) => t,
+            None => continue,
+        };
+
+        let ends_unix = ends_at.timestamp();
+        let ends_rel = format!("<t:{ends_unix}:R>");
 
         let store_link = match &offer.product_slug {
             Some(slug) => format!(
@@ -67,8 +72,8 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         let message = format!(
-            "**{}** is now free on Epic Games Store!\n{}",
-            offer.title, store_link
+            "**{}** is now free on Epic Games Store! Ends {}\n{}",
+            offer.title, ends_rel, store_link
         );
 
         send_discord_webhook(&message)?;
