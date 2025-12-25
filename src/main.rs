@@ -53,7 +53,7 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
     let root = serde_json::from_str::<EpicResponse>(&body)?;
 
     let offers = root.data.catalog.search_store.elements;
-    for offer in offers.iter() {
+    for offer in offers {
         if !is_free_now(&offer, now) {
             continue;
         }
