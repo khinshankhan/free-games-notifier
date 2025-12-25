@@ -1,7 +1,10 @@
-mod epic;
-
-use epic::{EpicResponse};
 use chrono::{DateTime, Utc};
+
+mod epic;
+use epic::{EpicResponse};
+
+mod discord;
+use discord::send_discord_webhook;
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -51,13 +54,19 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
 
     let offers = root.data.catalog.search_store.elements;
     for offer in offers.iter().filter(|o| is_free_now(o, now)) {
-        println!("FREE NOW: {} ({}:{})", offer.title, offer.namespace, offer.id);
+        let message = format!(
+            "Free now on Epic Games Store: {} (ID: {}, Namespace: {})",
+            offer.title, offer.id, offer.namespace
+        );
+        send_discord_webhook(&message)?;
     }
 
     Ok(())
 }
 
 fn main() {
+    dotenvy::dotenv().ok();
+
     match handle_epic() {
         Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
         Err(e) => eprintln!("HTTP error: {e}"),
