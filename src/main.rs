@@ -61,7 +61,7 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
             None => continue,
         };
 
-        let is_bundle = offer.offer_type.is_some_and(|ot| ot == "BUNDLE")
+        let is_bundle = offer.offer_type.is_some_and(|ot| ot == epic::OfferType::Bundle)
             || offer.categories.is_some_and(|cats| {
                 cats.iter()
                     .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")

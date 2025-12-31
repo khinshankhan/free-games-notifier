@@ -33,10 +33,22 @@ pub struct Offer {
     pub categories: Option<Vec<Category>>,
 
     #[serde(rename = "offerType")]
-    pub offer_type: Option<String>,
+    pub offer_type: Option<OfferType>,
 
     #[serde(default)]
     pub promotions: Option<Promotions>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum OfferType {
+    #[serde(rename = "BASE_GAME")]
+    BaseGame,
+
+    #[serde(rename = "BUNDLE")]
+    Bundle,
+
+    Other(String),
 }
 
 #[derive(Debug, Deserialize)]
