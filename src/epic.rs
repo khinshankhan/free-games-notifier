@@ -26,11 +26,22 @@ pub struct SearchStore {
 pub struct Offer {
     pub title: String,
     pub price: Price,
+
     #[serde(rename = "productSlug")]
     pub product_slug: Option<String>,
 
+    pub categories: Option<Vec<Category>>,
+
+    #[serde(rename = "offerType")]
+    pub offer_type: Option<String>,
+
     #[serde(default)]
     pub promotions: Option<Promotions>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Category {
+    pub path: String,
 }
 
 #[derive(Debug, Deserialize)]
