@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct EpicResponse {
-    pub data: EpicData,
+pub struct Response {
+    pub data: Data,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct EpicData {
+pub struct Data {
     #[serde(rename = "Catalog")]
     pub catalog: Catalog,
 }

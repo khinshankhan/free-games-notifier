@@ -1,10 +1,6 @@
 use chrono::{DateTime, Utc};
-
-mod epic;
-use epic::EpicResponse;
-
 mod discord;
-use discord::send_discord_webhook;
+mod epic;
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -52,7 +48,7 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
     let now = chrono::Utc::now();
 
     let body = get_epic_data()?;
-    let root = serde_json::from_str::<EpicResponse>(&body)?;
+    let root = serde_json::from_str::<epic::Response>(&body)?;
 
     let offers = root.data.catalog.search_store.elements;
     for offer in offers {
@@ -61,7 +57,9 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
             None => continue,
         };
 
-        let is_bundle = offer.offer_type.is_some_and(|ot| ot == epic::OfferType::Bundle)
+        let is_bundle = offer
+            .offer_type
+            .is_some_and(|ot| ot == epic::OfferType::Bundle)
             || offer.categories.is_some_and(|cats| {
                 cats.iter()
                     .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
@@ -82,7 +80,7 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
         );
 
         if ALLOW_POST_FLAG {
-            send_discord_webhook(&message)?;
+            discord::send_webhook(&message)?;
         } else {
             println!("Posting disabled. Message:\n{}", message);
             continue;
