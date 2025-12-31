@@ -46,6 +46,7 @@ fn free_promo_ends_at(offer: &epic::Offer, now: DateTime<Utc>) -> Option<DateTim
     None
 }
 
+const ALLOW_POST_FLAG: bool = true;
 
 fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
     let now = chrono::Utc::now();
@@ -76,7 +77,12 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
             offer.title, ends_rel, store_link
         );
 
-        send_discord_webhook(&message)?;
+        if ALLOW_POST_FLAG {
+            send_discord_webhook(&message)?;
+        } else {
+            println!("Posting disabled. Message:\n{}", message);
+            continue;
+        }
     }
 
     Ok(())
