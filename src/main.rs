@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 
 mod epic;
-use epic::{EpicResponse};
+use epic::EpicResponse;
 
 mod discord;
-use discord::{send_discord_webhook};
+use discord::send_discord_webhook;
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -61,38 +61,18 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
             None => continue,
         };
 
-        let is_bundle = 'is_bundle: {
-            if let Some(offer_type) = &offer.offer_type {
-                if offer_type == "BUNDLE" {
-                    break 'is_bundle true;
-                }
-            }
-
-            let Some(categories) = &offer.categories else {
-                break 'is_bundle false;
-            };
-
-            for category in categories {
-                if category.path == "bundles" || category.path == "bundles/games" {
-                    break 'is_bundle true;
-                }
-            }
-
-            break 'is_bundle false;
-        };
-
+        let is_bundle = offer.offer_type.is_some_and(|ot| ot == "BUNDLE")
+            || offer.categories.is_some_and(|cats| {
+                cats.iter()
+                    .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
+            });
 
         let ends_unix = ends_at.timestamp();
         let ends_rel = format!("<t:{ends_unix}:R>");
 
-        let store_link = match &offer.product_slug {
-            Some(slug) => {
-                if is_bundle {
-                    format!("https://store.epicgames.com/en-US/bundles/{}", slug)
-                } else {
-                    format!("https://www.epicgames.com/store/en-US/p/{}", slug)
-                }
-            },
+        let store_link = match offer.product_slug {
+            Some(slug) if is_bundle => format!("https://store.epicgames.com/en-US/bundles/{slug}"),
+            Some(slug) => format!("https://www.epicgames.com/store/en-US/p/{slug}"),
             None => continue,
         };
 
