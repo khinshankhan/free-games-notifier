@@ -45,7 +45,7 @@ fn main() {
     let ec = epic::RealClient;
     let n = get_notifier();
 
-    match app::handle_epic(&ts, &ec, &offer_store, &n) {
+    match app::handle_epic(&ts, &ec, &offer_store, &*n) {
         Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
         Err(e) => eprintln!("HTTP error: {e}"),
     }

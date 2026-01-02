@@ -99,7 +99,7 @@ pub fn handle_epic(
     ts: &impl time::TimeSource,
     ec: &impl epic::Client,
     store: &impl offer_store::OfferStore,
-    n: &Box<dyn notifier::Notifier>,
+    n: &dyn notifier::Notifier,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let existing_offers = store.get_existing_offers()?;
 
