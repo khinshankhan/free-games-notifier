@@ -1,4 +1,4 @@
-use crate::{db, epic, epic_client, notifier, time};
+use crate::{epic, epic_client, notifier, offer_store, time};
 
 fn free_promo_ends_at(
     offer: &epic::Offer,
@@ -39,17 +39,15 @@ fn free_promo_ends_at(
 pub fn handle_epic(
     ts: &impl time::TimeSource,
     ec: &impl epic_client::EpicClient,
+    store: &impl offer_store::OfferStore,
     n: &Box<dyn notifier::Notifier>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let now = ts.now();
 
-    let conn = db::init_db("offers.db")?;
-    db::prune_expired_offers(&conn, now.timestamp())?;
-
     let body = ec.fetch_offers()?;
     let root = serde_json::from_str::<epic::Response>(&body)?;
 
-    let existing_offers = db::get_existing_offers(&conn)?;
+    let existing_offers = store.get_existing_offers()?;
     let existing_offer_ids: std::collections::HashMap<String, i64> = existing_offers
         .into_iter()
         .map(|offer| (offer.id, offer.ends_at))
@@ -90,7 +88,7 @@ pub fn handle_epic(
         );
 
         n.notify(&message)?;
-        db::insert_offer(&conn, &offer.id, ends_unix)?;
+        store.insert_offer(&offer.id, ends_unix)?;
     }
 
     Ok(())
