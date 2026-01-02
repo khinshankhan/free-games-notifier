@@ -24,6 +24,7 @@ pub struct SearchStore {
 
 #[derive(Debug, Deserialize)]
 pub struct Offer {
+    pub id: String,
     pub title: String,
     pub price: Price,
 

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+mod db;
 mod discord;
 mod epic;
 
@@ -47,8 +48,17 @@ const ALLOW_POST_FLAG: bool = true;
 fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
     let now = chrono::Utc::now();
 
+    let conn = db::init_db("offers.db")?;
+    db::prune_expired_offers(&conn, now.timestamp())?;
+
     let body = get_epic_data()?;
     let root = serde_json::from_str::<epic::Response>(&body)?;
+
+    let existing_offers = db::get_existing_offers(&conn)?;
+    let existing_offer_ids: std::collections::HashMap<String, i64> = existing_offers
+        .into_iter()
+        .map(|offer| (offer.id, offer.ends_at))
+        .collect();
 
     let offers = root.data.catalog.search_store.elements;
     for offer in offers {
@@ -56,6 +66,11 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
             Some(t) => t,
             None => continue,
         };
+
+        if existing_offer_ids.contains_key(&offer.id) {
+            println!("Offer '{}' already posted, skipping.", offer.title);
+            continue;
+        }
 
         let is_bundle = offer
             .offer_type
@@ -81,6 +96,7 @@ fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
 
         if ALLOW_POST_FLAG {
             discord::send_webhook(&message)?;
+            db::insert_offer(&conn, &offer.id, ends_unix)?;
         } else {
             println!("Posting disabled. Message:\n{}", message);
             continue;
