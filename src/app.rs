@@ -1,4 +1,4 @@
-use crate::{epic, epic_client, notifier, offer_store, time};
+use crate::{epic, notifier, offer_store, time};
 
 fn free_promo_ends_at(
     offer: &epic::Offer,
@@ -38,7 +38,7 @@ fn free_promo_ends_at(
 
 pub fn handle_epic(
     ts: &impl time::TimeSource,
-    ec: &impl epic_client::EpicClient,
+    ec: &impl epic::Client,
     store: &impl offer_store::OfferStore,
     n: &Box<dyn notifier::Notifier>,
 ) -> Result<(), Box<dyn std::error::Error>> {

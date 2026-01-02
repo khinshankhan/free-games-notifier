@@ -1,10 +1,9 @@
 use offer_store::OfferStore;
 use time::TimeSource;
 
+mod app;
 mod discord;
 mod epic;
-mod epic_client;
-mod epic_logic;
 mod notifier;
 mod offer_store;
 mod time;
@@ -43,10 +42,10 @@ fn main() {
         .prune_expired_offers(ts.now().timestamp())
         .expect("Failed to prune expired offers");
 
-    let ec = epic_client::RealClient;
+    let ec = epic::RealClient;
     let n = get_notifier();
 
-    match epic_logic::handle_epic(&ts, &ec, &offer_store, &n) {
+    match app::handle_epic(&ts, &ec, &offer_store, &n) {
         Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
         Err(e) => eprintln!("HTTP error: {e}"),
     }
