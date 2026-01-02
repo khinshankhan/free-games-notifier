@@ -1,4 +1,4 @@
-use crate::{db, discord, epic};
+use crate::{db, discord, epic, time};
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -45,8 +45,8 @@ fn free_promo_ends_at(
 
 const ALLOW_POST_FLAG: bool = true;
 
-pub fn handle_epic() -> Result<(), Box<dyn std::error::Error>> {
-    let now = chrono::Utc::now();
+pub fn handle_epic(ts: &impl time::TimeSource) -> Result<(), Box<dyn std::error::Error>> {
+    let now = ts.now();
 
     let conn = db::init_db("offers.db")?;
     db::prune_expired_offers(&conn, now.timestamp())?;
