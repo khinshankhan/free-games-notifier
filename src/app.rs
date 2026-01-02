@@ -1,6 +1,14 @@
 use crate::{epic, notifier, offer_store, time};
 
-fn free_promo_ends_at(
+pub struct Offer {
+    id: String,
+    source: String,
+    title: String,
+    link: String,
+    ends_at: chrono::DateTime<chrono::Utc>,
+}
+
+fn free_epic_promo_ends_at(
     offer: &epic::Offer,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Option<chrono::DateTime<chrono::Utc>> {
@@ -18,22 +26,73 @@ fn free_promo_ends_at(
                 continue;
             }
 
-            let start = chrono::DateTime::parse_from_rfc3339(&promo.start_date)
-                .ok()
-                .map(|dt| dt.with_timezone(&chrono::Utc));
-            let end = chrono::DateTime::parse_from_rfc3339(&promo.end_date)
-                .ok()
-                .map(|dt| dt.with_timezone(&chrono::Utc));
+            let (Some(start), Some(end)) = (
+                time::parse_utc(&promo.start_date),
+                time::parse_utc(&promo.end_date),
+            ) else {
+                continue;
+            };
 
-            if let (Some(start), Some(end)) = (start, end) {
-                if start <= now && now < end {
-                    return Some(end);
-                }
+            if start <= now && now < end {
+                return Some(end);
             }
         }
     }
 
     None
+}
+
+pub fn get_epic_free_offers(
+    ts: &impl time::TimeSource,
+    ec: &impl epic::Client,
+    existing_offer_ids: std::collections::HashMap<String, i64>,
+) -> Result<Vec<Offer>, Box<dyn std::error::Error>> {
+    let now = ts.now();
+
+    let body = ec.fetch_offers()?;
+    let root = serde_json::from_str::<epic::Response>(&body)?;
+
+    let offers: Vec<Offer> = root
+        .data
+        .catalog
+        .search_store
+        .elements
+        .into_iter()
+        .filter_map(|offer| {
+            let ends_at = free_epic_promo_ends_at(&offer, now)?;
+
+            if existing_offer_ids.contains_key(&offer.id) {
+                tracing::info!(title = %offer.title, "Offer already posted, skipping");
+                return None;
+            }
+
+            let is_bundle = offer
+                .offer_type
+                .is_some_and(|ot| ot == epic::OfferType::Bundle)
+                || offer.categories.is_some_and(|cats| {
+                    cats.iter()
+                        .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
+                });
+
+            let store_link = match offer.product_slug {
+                Some(slug) if is_bundle => {
+                    format!("https://store.epicgames.com/en-US/bundles/{slug}")
+                }
+                Some(slug) => format!("https://www.epicgames.com/store/en-US/p/{slug}"),
+                None => return None,
+            };
+
+            Some(Offer {
+                id: offer.id,
+                source: "Epic Games Store".to_string(),
+                title: offer.title,
+                link: store_link,
+                ends_at,
+            })
+        })
+        .collect();
+
+    Ok(offers)
 }
 
 pub fn handle_epic(
@@ -42,49 +101,24 @@ pub fn handle_epic(
     store: &impl offer_store::OfferStore,
     n: &Box<dyn notifier::Notifier>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let now = ts.now();
-
-    let body = ec.fetch_offers()?;
-    let root = serde_json::from_str::<epic::Response>(&body)?;
-
     let existing_offers = store.get_existing_offers()?;
-    let existing_offer_ids: std::collections::HashMap<String, i64> = existing_offers
-        .into_iter()
-        .map(|offer| (offer.id, offer.ends_at))
-        .collect();
 
-    let offers = root.data.catalog.search_store.elements;
-    for offer in offers {
-        let ends_at = match free_promo_ends_at(&offer, now) {
-            Some(t) => t,
-            None => continue,
-        };
+    let epic_free_offers = get_epic_free_offers(
+        ts,
+        ec,
+        existing_offers
+            .into_iter()
+            .map(|offer| (offer.id, offer.ends_at))
+            .collect(),
+    )?;
 
-        if existing_offer_ids.contains_key(&offer.id) {
-            println!("Offer '{}' already posted, skipping.", offer.title);
-            continue;
-        }
-
-        let is_bundle = offer
-            .offer_type
-            .is_some_and(|ot| ot == epic::OfferType::Bundle)
-            || offer.categories.is_some_and(|cats| {
-                cats.iter()
-                    .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
-            });
-
-        let ends_unix = ends_at.timestamp();
+    for offer in epic_free_offers {
+        let ends_unix = offer.ends_at.timestamp();
         let ends_rel = format!("<t:{ends_unix}:R>");
 
-        let store_link = match offer.product_slug {
-            Some(slug) if is_bundle => format!("https://store.epicgames.com/en-US/bundles/{slug}"),
-            Some(slug) => format!("https://www.epicgames.com/store/en-US/p/{slug}"),
-            None => continue,
-        };
-
         let message = format!(
-            "**{}** is now free on Epic Games Store! Ends {}\n{}",
-            offer.title, ends_rel, store_link
+            "**{}** is now free on {}! Ends {}\n{}",
+            offer.title, offer.source, ends_rel, offer.link,
         );
 
         n.notify(&message)?;

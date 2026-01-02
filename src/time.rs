@@ -9,3 +9,9 @@ impl TimeSource for SystemTimeSource {
         chrono::Utc::now()
     }
 }
+
+pub fn parse_utc(s: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    chrono::DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|dt| dt.to_utc())
+}
