@@ -47,6 +47,6 @@ fn main() {
 
     match app::handle_epic(&ts, &ec, &offer_store, &*n) {
         Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
-        Err(e) => eprintln!("HTTP error: {e}"),
+        Err(e) => eprintln!("Error: {e}"),
     }
 }
