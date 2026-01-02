@@ -1,4 +1,4 @@
-use crate::{db, discord, epic, time};
+use crate::{db, epic, notifier, time};
 
 fn get_epic_data() -> Result<String, reqwest::Error> {
     let epic_url =
@@ -43,9 +43,10 @@ fn free_promo_ends_at(
     None
 }
 
-const ALLOW_POST_FLAG: bool = true;
-
-pub fn handle_epic(ts: &impl time::TimeSource) -> Result<(), Box<dyn std::error::Error>> {
+pub fn handle_epic(
+    ts: &impl time::TimeSource,
+    n: &Box<dyn notifier::Notifier>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let now = ts.now();
 
     let conn = db::init_db("offers.db")?;
@@ -94,13 +95,8 @@ pub fn handle_epic(ts: &impl time::TimeSource) -> Result<(), Box<dyn std::error:
             offer.title, ends_rel, store_link
         );
 
-        if ALLOW_POST_FLAG {
-            discord::send_webhook(&message)?;
-            db::insert_offer(&conn, &offer.id, ends_unix)?;
-        } else {
-            println!("Posting disabled. Message:\n{}", message);
-            continue;
-        }
+        n.notify(&message)?;
+        db::insert_offer(&conn, &offer.id, ends_unix)?;
     }
 
     Ok(())

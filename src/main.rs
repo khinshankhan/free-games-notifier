@@ -2,14 +2,36 @@ mod db;
 mod discord;
 mod epic;
 mod epic_logic;
+mod notifier;
 mod time;
+
+fn get_notifier() -> Box<dyn notifier::Notifier> {
+    let allow_post_flag = std::env::var("ALLOW_POST_FLAG")
+        .unwrap_or_else(|_| "false".to_string())
+        .to_lowercase();
+
+    if allow_post_flag != "true" {
+        return Box::new(notifier::LoggingNotifier);
+    }
+
+    let webhook_url = match std::env::var("DISCORD_WEBHOOK_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            eprintln!("DISCORD_WEBHOOK_URL not set, falling back to logging notifier.");
+            return Box::new(notifier::LoggingNotifier);
+        }
+    };
+
+    return Box::new(discord::DiscordNotifier::new(webhook_url));
+}
 
 fn main() {
     dotenvy::dotenv().ok();
 
     let ts = time::SystemTimeSource;
+    let n = get_notifier();
 
-    match epic_logic::handle_epic(&ts) {
+    match epic_logic::handle_epic(&ts, &n) {
         Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
         Err(e) => eprintln!("HTTP error: {e}"),
     }

@@ -1,18 +1,28 @@
-use std::env;
+use crate::notifier;
 
-pub fn send_webhook(message: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let webhook_url = env::var("DISCORD_WEBHOOK_URL").map_err(|_| "DISCORD_WEBHOOK_URL not set")?;
+pub struct DiscordNotifier {
+    webhook_url: String,
+}
 
-    let payload = serde_json::json!({
-        "content": message
-    });
-
-    let client = reqwest::blocking::Client::new();
-    let resp = client.post(webhook_url).json(&payload).send()?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Discord webhook failed: {}", resp.status()).into());
+impl DiscordNotifier {
+    pub fn new(webhook_url: String) -> Self {
+        DiscordNotifier { webhook_url }
     }
+}
 
-    Ok(())
+impl notifier::Notifier for DiscordNotifier {
+    fn notify(&self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let payload = serde_json::json!({
+            "content": message
+        });
+
+        let client = reqwest::blocking::Client::new();
+        let resp = client.post(&self.webhook_url).json(&payload).send()?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Discord webhook failed: {}", resp.status()).into());
+        }
+
+        Ok(())
+    }
 }
