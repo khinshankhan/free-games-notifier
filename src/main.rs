@@ -1,6 +1,7 @@
 mod db;
 mod discord;
 mod epic;
+mod epic_client;
 mod epic_logic;
 mod notifier;
 mod time;
@@ -29,9 +30,10 @@ fn main() {
     dotenvy::dotenv().ok();
 
     let ts = time::SystemTimeSource;
+    let ec = epic_client::RealClient;
     let n = get_notifier();
 
-    match epic_logic::handle_epic(&ts, &n) {
+    match epic_logic::handle_epic(&ts, &ec, &n) {
         Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
         Err(e) => eprintln!("HTTP error: {e}"),
     }

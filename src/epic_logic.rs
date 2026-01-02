@@ -1,11 +1,4 @@
-use crate::{db, epic, notifier, time};
-
-fn get_epic_data() -> Result<String, reqwest::Error> {
-    let epic_url =
-        "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=en-US";
-
-    Ok(reqwest::blocking::get(epic_url)?.text()?)
-}
+use crate::{db, epic, epic_client, notifier, time};
 
 fn free_promo_ends_at(
     offer: &epic::Offer,
@@ -45,6 +38,7 @@ fn free_promo_ends_at(
 
 pub fn handle_epic(
     ts: &impl time::TimeSource,
+    ec: &impl epic_client::EpicClient,
     n: &Box<dyn notifier::Notifier>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let now = ts.now();
@@ -52,7 +46,7 @@ pub fn handle_epic(
     let conn = db::init_db("offers.db")?;
     db::prune_expired_offers(&conn, now.timestamp())?;
 
-    let body = get_epic_data()?;
+    let body = ec.fetch_offers()?;
     let root = serde_json::from_str::<epic::Response>(&body)?;
 
     let existing_offers = db::get_existing_offers(&conn)?;
