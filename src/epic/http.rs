@@ -20,3 +20,19 @@ impl HttpClient for Client {
             })?)
     }
 }
+
+pub struct MockClient {
+    response_body: String,
+}
+
+impl MockClient {
+    pub fn new(response_body: String) -> Self {
+        Self { response_body }
+    }
+}
+
+impl HttpClient for MockClient {
+    fn fetch_offers(&self) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self.response_body.clone())
+    }
+}

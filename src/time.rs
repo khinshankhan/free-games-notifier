@@ -10,6 +10,22 @@ impl TimeSource for SystemTimeSource {
     }
 }
 
+pub struct MockTimeSource {
+    fixed_time: chrono::DateTime<chrono::Utc>,
+}
+
+impl MockTimeSource {
+    pub fn new(fixed_time: chrono::DateTime<chrono::Utc>) -> Self {
+        Self { fixed_time }
+    }
+}
+
+impl TimeSource for MockTimeSource {
+    fn now(&self) -> chrono::DateTime<chrono::Utc> {
+        self.fixed_time
+    }
+}
+
 pub fn parse_utc(s: &str) -> Option<chrono::DateTime<chrono::Utc>> {
     chrono::DateTime::parse_from_rfc3339(s)
         .map_err(|e| {
