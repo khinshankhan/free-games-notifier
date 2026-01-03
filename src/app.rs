@@ -49,8 +49,14 @@ pub fn get_epic_free_offers(
 ) -> Result<Vec<Offer>, Box<dyn std::error::Error>> {
     let now = ts.now();
 
-    let body = ec.fetch_offers()?;
-    let root = serde_json::from_str::<epic::Response>(&body)?;
+    let body = ec.fetch_offers().map_err(|e| {
+        tracing::error!("Failed to fetch offers from Epic Games Store: {e}");
+        e
+    })?;
+    let root = serde_json::from_str::<epic::Response>(&body).map_err(|e| {
+        tracing::error!("Failed to parse Epic Games Store response: {e}");
+        e
+    })?;
 
     let offers: Vec<Offer> = root
         .data

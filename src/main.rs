@@ -20,7 +20,7 @@ fn get_notifier() -> Box<dyn notifier::Notifier> {
     let webhook_url = match std::env::var("DISCORD_WEBHOOK_URL") {
         Ok(url) => url,
         Err(_) => {
-            eprintln!("DISCORD_WEBHOOK_URL not set, falling back to logging notifier.");
+            tracing::warn!("DISCORD_WEBHOOK_URL not set, falling back to logging notifier.");
             return Box::new(notifier::LoggingNotifier);
         }
     };
@@ -28,25 +28,32 @@ fn get_notifier() -> Box<dyn notifier::Notifier> {
     return Box::new(discord::DiscordNotifier::new(webhook_url));
 }
 
-fn main() {
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
     let ts = time::SystemTimeSource;
 
-    let db = rusqlite::Connection::open("offers.db").expect("Failed to open database");
+    let db = rusqlite::Connection::open("offers.db")?;
     let offer_store = offer_store::SqliteOfferStore::new(db);
-    offer_store
-        .ensure_schema()
-        .expect("Failed to ensure database schema");
-    offer_store
-        .prune_expired_offers(ts.now().timestamp())
-        .expect("Failed to prune expired offers");
+    offer_store.ensure_schema()?;
+    offer_store.prune_expired_offers(ts.now().timestamp())?;
 
     let ec = epic::RealClient;
     let n = get_notifier();
 
-    match app::handle_epic(&ts, &ec, &offer_store, &*n) {
-        Ok(()) => println!("Successfully fetched and displayed Epic Games offers."),
-        Err(e) => eprintln!("Error: {e}"),
+    app::handle_epic(&ts, &ec, &offer_store, &*n)?;
+
+    Ok(())
+}
+
+fn main()  {
+    tracing_subscriber::fmt::init();
+
+    match run() {
+        Ok(()) => println!("Successfully fetched and displayed relevant offers."),
+        Err(e) => {
+            tracing::error!("Application error: {}", e);
+            std::process::exit(1);
+        },
     }
 }
