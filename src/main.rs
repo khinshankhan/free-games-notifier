@@ -9,14 +9,6 @@ mod offer_store;
 mod time;
 
 fn get_notifier() -> Box<dyn notifier::Notifier> {
-    let allow_post_flag = std::env::var("ALLOW_POST_FLAG")
-        .unwrap_or_else(|_| "false".to_string())
-        .to_lowercase();
-
-    if allow_post_flag != "true" {
-        return Box::new(notifier::LoggingNotifier);
-    }
-
     let webhook_url = match std::env::var("DISCORD_WEBHOOK_URL") {
         Ok(url) => url,
         Err(_) => {
