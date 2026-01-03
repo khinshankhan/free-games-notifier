@@ -17,6 +17,7 @@ impl OfferStore for SqliteOfferStore {
                 r#"
             CREATE TABLE IF NOT EXISTS posted_offers (
               id        TEXT PRIMARY KEY,
+              source    TEXT NOT NULL,
               ends_at   INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_posted_offers_ends_at ON posted_offers(ends_at);
@@ -31,7 +32,7 @@ impl OfferStore for SqliteOfferStore {
     }
 
     fn get_existing_offers(&self) -> rusqlite::Result<Vec<ExistingOffer>> {
-        let mut stmt = self.conn.prepare("SELECT id, ends_at FROM posted_offers")?;
+        let mut stmt = self.conn.prepare("SELECT id, source, ends_at FROM posted_offers")?;
         let mut rows = stmt.query([]).map_err(|e| {
             tracing::error!("Failed to query existing offers: {e}");
             e
@@ -41,21 +42,22 @@ impl OfferStore for SqliteOfferStore {
         while let Some(row) = rows.next()? {
             offers.push(ExistingOffer {
                 id: row.get(0)?,
-                ends_at: row.get(1)?,
+                source: row.get(1)?,
+                ends_at: row.get(2)?,
             });
         }
 
         Ok(offers)
     }
 
-    fn insert_offer(&self, offer_id: &str, ends_at: i64) -> rusqlite::Result<()> {
+    fn insert_offer(&self, id: &str, source: &str, ends_at: i64) -> rusqlite::Result<()> {
         self.conn
             .execute(
-                "INSERT INTO posted_offers (id, ends_at) VALUES (?1, ?2)",
-                rusqlite::params![offer_id, ends_at],
+                "INSERT INTO posted_offers (id, source, ends_at) VALUES (?1, ?2, ?3)",
+                rusqlite::params![id, source, ends_at],
             )
             .map_err(|e| {
-                tracing::error!("Failed to insert offer {}: {e}", offer_id);
+                tracing::error!("Failed to insert offer {}: {e}", id);
                 e
             })?;
 

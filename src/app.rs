@@ -90,7 +90,7 @@ pub fn get_epic_free_offers(
 
             Some(Offer {
                 id: offer.id,
-                source: "Epic Games Store".to_string(),
+                source: epic::SOURCE.to_string(),
                 title: offer.title,
                 link: store_link,
                 ends_at,
@@ -114,7 +114,8 @@ pub fn handle_epic(
         ec,
         existing_offers
             .into_iter()
-            .map(|offer| (offer.id, offer.ends_at))
+            .filter(|o| o.source == epic::SOURCE)
+            .map(|o| (o.id, o.ends_at))
             .collect(),
     )?;
 
@@ -128,7 +129,7 @@ pub fn handle_epic(
         );
 
         n.notify(&message)?;
-        store.insert_offer(&offer.id, ends_unix)?;
+        store.insert_offer(&offer.id, &offer.source, ends_unix)?;
     }
 
     Ok(())
