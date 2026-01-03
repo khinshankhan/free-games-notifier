@@ -48,6 +48,26 @@ mod fixture_tests {
     }
 
     #[test]
+    fn test_handle_epic_bundle_promo() {
+        let (ts, ec, offer_store, n) = setup(
+            "2025-12-30T16:00:00.000Z",
+            include_str!("./fixtures/epic_bundle_promo.json"),
+        );
+
+        app::handle_epic(&ts, &ec, &offer_store, &n).unwrap();
+
+        let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
+        let expected: std::collections::HashSet<String> = [
+            "**Trine Classic Collection** is now free on EGS! Ends <t:1767196800:R>\nhttps://store.epicgames.com/en-US/bundles/trine-classic-collection"
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+
+        assert_eq!(msgs, expected);
+    }
+
+    #[test]
     fn test_handle_epic_multiple_promo() {
         let (ts, ec, offer_store, n) = setup(
             "2026-01-01T16:15:00.000Z",
