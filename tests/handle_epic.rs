@@ -89,4 +89,31 @@ mod fixture_tests {
 
         assert_eq!(msgs, expected);
     }
+
+    #[test]
+    fn test_handle_epic_multiple_promo_same_multi_run() {
+        let (ts, ec, offer_store, n) = setup(
+            "2026-01-01T16:15:00.000Z",
+            include_str!("./fixtures/epic_multiple_promo.json"),
+        );
+
+        app::handle_epic(&ts, &ec, &offer_store, &n).unwrap();
+
+        // First run should emit both messages, refer to `test_handle_epic_multiple_promo` for details.
+        assert_eq!(
+            n.get_messages().len(),
+            2,
+            "sanity check: first run should emit"
+        );
+
+        let n2 = notifier::CaptureNotifier::new();
+        // Second run against SAME offer_store/db -> should emit nothing.
+        app::handle_epic(&ts, &ec, &offer_store, &n2).unwrap();
+
+        assert!(
+            n2.get_messages().is_empty(),
+            "expected no notifications on second run; got {:?}",
+            n2.get_messages()
+        );
+    }
 }
