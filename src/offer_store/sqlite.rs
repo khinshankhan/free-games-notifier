@@ -32,7 +32,9 @@ impl OfferStore for SqliteOfferStore {
     }
 
     fn get_existing_offers(&self) -> rusqlite::Result<Vec<ExistingOffer>> {
-        let mut stmt = self.conn.prepare("SELECT id, source, ends_at FROM posted_offers")?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, source, ends_at FROM posted_offers")?;
         let mut rows = stmt.query([]).map_err(|e| {
             tracing::error!("Failed to query existing offers: {e}");
             e

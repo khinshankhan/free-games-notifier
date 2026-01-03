@@ -1,7 +1,4 @@
-mod client;
-mod schema;
-
-pub use client::*;
-pub use schema::*;
+pub mod http;
+pub mod schema;
 
 pub const SOURCE: &str = "EGS";

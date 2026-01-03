@@ -9,7 +9,7 @@ pub struct Offer {
 }
 
 fn free_epic_promo_ends_at(
-    offer: &epic::Offer,
+    offer: &epic::schema::Offer,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Option<chrono::DateTime<chrono::Utc>> {
     if offer.price.total_price.discount_price != 0 {
@@ -44,7 +44,7 @@ fn free_epic_promo_ends_at(
 
 pub fn get_epic_free_offers(
     ts: &impl time::TimeSource,
-    ec: &impl epic::Client,
+    ec: &impl epic::http::HttpClient,
     existing_offer_ids: std::collections::HashMap<String, i64>,
 ) -> Result<Vec<Offer>, Box<dyn std::error::Error>> {
     let now = ts.now();
@@ -53,7 +53,7 @@ pub fn get_epic_free_offers(
         tracing::error!("Failed to fetch offers from Epic Games Store: {e}");
         e
     })?;
-    let root = serde_json::from_str::<epic::Response>(&body).map_err(|e| {
+    let root = serde_json::from_str::<epic::schema::Response>(&body).map_err(|e| {
         tracing::error!("Failed to parse Epic Games Store response: {e}");
         e
     })?;
@@ -74,7 +74,7 @@ pub fn get_epic_free_offers(
 
             let is_bundle = offer
                 .offer_type
-                .is_some_and(|ot| ot == epic::OfferType::Bundle)
+                .is_some_and(|ot| ot == epic::schema::OfferType::Bundle)
                 || offer.categories.is_some_and(|cats| {
                     cats.iter()
                         .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
@@ -103,7 +103,7 @@ pub fn get_epic_free_offers(
 
 pub fn handle_epic(
     ts: &impl time::TimeSource,
-    ec: &impl epic::Client,
+    ec: &impl epic::http::HttpClient,
     store: &impl offer_store::OfferStore,
     n: &dyn notifier::Notifier,
 ) -> Result<(), Box<dyn std::error::Error>> {

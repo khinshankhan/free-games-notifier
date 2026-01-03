@@ -1,10 +1,10 @@
-pub trait Client {
+pub trait HttpClient {
     fn fetch_offers(&self) -> Result<String, Box<dyn std::error::Error>>;
 }
 
-pub struct RealClient;
+pub struct Client;
 
-impl Client for RealClient {
+impl HttpClient for Client {
     fn fetch_offers(&self) -> Result<String, Box<dyn std::error::Error>> {
         let url = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=US&allowCountries=US";
 

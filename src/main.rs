@@ -1,12 +1,6 @@
-use offer_store::OfferStore;
-use time::TimeSource;
-
-mod app;
-mod discord;
-mod epic;
-mod notifier;
-mod offer_store;
-mod time;
+use free_games_notifier::offer_store::OfferStore;
+use free_games_notifier::time::TimeSource;
+use free_games_notifier::{app, discord, epic, notifier, offer_store, time};
 
 fn get_notifier() -> Box<dyn notifier::Notifier> {
     let webhook_url = match std::env::var("DISCORD_WEBHOOK_URL") {
@@ -30,7 +24,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     offer_store.ensure_schema()?;
     offer_store.prune_expired_offers(ts.now().timestamp())?;
 
-    let ec = epic::RealClient;
+    let ec = epic::http::Client;
     let n = get_notifier();
 
     app::handle_epic(&ts, &ec, &offer_store, &*n)?;
@@ -38,7 +32,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn main()  {
+fn main() {
     tracing_subscriber::fmt::init();
 
     match run() {
@@ -46,6 +40,6 @@ fn main()  {
         Err(e) => {
             tracing::error!("Application error: {}", e);
             std::process::exit(1);
-        },
+        }
     }
 }
