@@ -36,7 +36,9 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     match run() {
-        Ok(()) => println!("Successfully fetched and displayed relevant offers."),
+        Ok(()) => {
+            tracing::info!("Application finished successfully.");
+        },
         Err(e) => {
             tracing::error!("Application error: {}", e);
             std::process::exit(1);
