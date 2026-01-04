@@ -28,13 +28,13 @@ mod fixture_tests {
     }
 
     #[test]
-    fn test_handle_epic_single_promo() {
+    fn test_epic_handle_single_promo() {
         let (ts, ec, offer_store, n) = setup(
             "2025-12-20T16:15:00.000Z",
             include_str!("./fixtures/epic_single_promo.json"),
         );
 
-        app::handle_epic(&ts, &ec, &offer_store, &n).unwrap();
+        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -48,13 +48,13 @@ mod fixture_tests {
     }
 
     #[test]
-    fn test_handle_epic_bundle_promo() {
+    fn test_epic_handle_bundle_promo() {
         let (ts, ec, offer_store, n) = setup(
             "2025-12-30T16:00:00.000Z",
             include_str!("./fixtures/epic_bundle_promo.json"),
         );
 
-        app::handle_epic(&ts, &ec, &offer_store, &n).unwrap();
+        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -68,13 +68,13 @@ mod fixture_tests {
     }
 
     #[test]
-    fn test_handle_epic_multiple_promo() {
+    fn test_epic_handle_multiple_promo() {
         let (ts, ec, offer_store, n) = setup(
             "2026-01-01T16:15:00.000Z",
             include_str!("./fixtures/epic_multiple_promo.json"),
         );
 
-        app::handle_epic(&ts, &ec, &offer_store, &n).unwrap();
+        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -91,15 +91,15 @@ mod fixture_tests {
     }
 
     #[test]
-    fn test_handle_epic_multiple_promo_same_multi_run() {
+    fn test_epic_handle_multiple_promo_same_multi_run() {
         let (ts, ec, offer_store, n) = setup(
             "2026-01-01T16:15:00.000Z",
             include_str!("./fixtures/epic_multiple_promo.json"),
         );
 
-        app::handle_epic(&ts, &ec, &offer_store, &n).unwrap();
+        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
 
-        // First run should emit both messages, refer to `test_handle_epic_multiple_promo` for details.
+        // First run should emit both messages, refer to `test_epic_handle_multiple_promo` for details.
         assert_eq!(
             n.get_messages().len(),
             2,
@@ -108,7 +108,7 @@ mod fixture_tests {
 
         let n2 = notifier::CaptureNotifier::new();
         // Second run against SAME offer_store/db -> should emit nothing.
-        app::handle_epic(&ts, &ec, &offer_store, &n2).unwrap();
+        app::epic::handle(&ts, &ec, &offer_store, &n2).unwrap();
 
         assert!(
             n2.get_messages().is_empty(),

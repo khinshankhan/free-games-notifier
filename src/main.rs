@@ -1,6 +1,6 @@
 use free_games_notifier::offer_store::OfferStore;
 use free_games_notifier::time::TimeSource;
-use free_games_notifier::{app, discord, epic, notifier, offer_store, time};
+use free_games_notifier::{app, epic, notifier, offer_store, time};
 
 fn get_notifier() -> Box<dyn notifier::Notifier> {
     let webhook_url = match std::env::var("DISCORD_WEBHOOK_URL") {
@@ -11,7 +11,7 @@ fn get_notifier() -> Box<dyn notifier::Notifier> {
         }
     };
 
-    return Box::new(discord::DiscordNotifier::new(webhook_url));
+    return Box::new(notifier::DiscordNotifier::new(webhook_url));
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,7 +27,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let ec = epic::http::Client;
     let n = get_notifier();
 
-    app::handle_epic(&ts, &ec, &offer_store, &*n)?;
+    app::epic::handle(&ts, &ec, &offer_store, &*n)?;
 
     Ok(())
 }

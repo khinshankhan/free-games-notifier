@@ -1,4 +1,4 @@
-use crate::notifier;
+use crate::notifier::{Notifier};
 
 pub struct DiscordNotifier {
     webhook_url: String,
@@ -14,7 +14,7 @@ impl DiscordNotifier {
     }
 }
 
-impl notifier::Notifier for DiscordNotifier {
+impl Notifier for DiscordNotifier {
     fn notify(&self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
         let payload = serde_json::json!({
             "content": message

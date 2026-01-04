@@ -8,7 +8,7 @@ pub struct Offer {
     ends_at: chrono::DateTime<chrono::Utc>,
 }
 
-fn free_epic_promo_ends_at(
+fn free_promo_ends_at(
     offer: &epic::schema::Offer,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Option<chrono::DateTime<chrono::Utc>> {
@@ -42,7 +42,7 @@ fn free_epic_promo_ends_at(
     None
 }
 
-pub fn get_epic_free_offers(
+pub fn get_free_offers(
     ts: &impl time::TimeSource,
     ec: &impl epic::http::HttpClient,
     existing_offer_ids: std::collections::HashMap<String, i64>,
@@ -65,7 +65,7 @@ pub fn get_epic_free_offers(
         .elements
         .into_iter()
         .filter_map(|offer| {
-            let ends_at = free_epic_promo_ends_at(&offer, now)?;
+            let ends_at = free_promo_ends_at(&offer, now)?;
 
             if existing_offer_ids.contains_key(&offer.id) {
                 tracing::info!(title = %offer.title, "Offer already posted, skipping");
@@ -101,7 +101,7 @@ pub fn get_epic_free_offers(
     Ok(offers)
 }
 
-pub fn handle_epic(
+pub fn handle(
     ts: &impl time::TimeSource,
     ec: &impl epic::http::HttpClient,
     store: &impl offer_store::OfferStore,
@@ -109,7 +109,7 @@ pub fn handle_epic(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let existing_offers = store.get_existing_offers()?;
 
-    let epic_free_offers = get_epic_free_offers(
+    let epic_free_offers = get_free_offers(
         ts,
         ec,
         existing_offers
