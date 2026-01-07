@@ -1,4 +1,4 @@
-use crate::notifier::{Notifier};
+use crate::notifier::Notifier;
 
 pub struct DiscordNotifier {
     webhook_url: String,

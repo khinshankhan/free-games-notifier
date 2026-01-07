@@ -1,4 +1,4 @@
-use crate::notifier::{Notifier};
+use crate::notifier::Notifier;
 
 pub struct CaptureNotifier {
     msgs: std::sync::Arc<std::sync::Mutex<Vec<String>>>,

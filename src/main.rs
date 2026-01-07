@@ -38,7 +38,7 @@ fn main() {
     match run() {
         Ok(()) => {
             tracing::info!("Application finished successfully.");
-        },
+        }
         Err(e) => {
             tracing::error!("Application error: {}", e);
             std::process::exit(1);
