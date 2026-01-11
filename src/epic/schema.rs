@@ -38,6 +38,9 @@ pub struct Offer {
 
     #[serde(default)]
     pub promotions: Option<Promotions>,
+
+    #[serde(rename = "catalogNs")]
+    pub catalog_ns: Option<CatalogNs>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -55,6 +58,18 @@ pub enum OfferType {
 #[derive(Debug, Deserialize)]
 pub struct Category {
     pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CatalogNs {
+    #[serde(rename = "mappings")]
+    pub mappings: Option<Vec<Mapping>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Mapping {
+    #[serde(rename = "pageSlug")]
+    pub page_slug: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

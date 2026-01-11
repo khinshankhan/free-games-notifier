@@ -42,6 +42,25 @@ fn free_promo_ends_at(
     None
 }
 
+pub fn get_slug(offer: &epic::schema::Offer) -> Option<String> {
+    if let Some(slug) = &offer.product_slug {
+        return Some(slug.clone());
+    }
+
+    // fallback: try to get slug from catalog namespace mappings
+    if let Some(catalog_ns) = &offer.catalog_ns {
+        if let Some(mappings) = &catalog_ns.mappings {
+            for mapping in mappings {
+                if let Some(page_slug) = &mapping.page_slug {
+                    return Some(page_slug.clone());
+                }
+            }
+        }
+    }
+
+    None
+}
+
 pub fn get_free_offers(
     ts: &impl time::TimeSource,
     ec: &impl epic::http::HttpClient,
@@ -65,6 +84,7 @@ pub fn get_free_offers(
         .elements
         .into_iter()
         .filter_map(|offer| {
+            println!("Checking offer: {}", offer.title);
             let ends_at = free_promo_ends_at(&offer, now)?;
 
             if existing_offer_ids.contains_key(&offer.id) {
@@ -72,6 +92,9 @@ pub fn get_free_offers(
                 return None;
             }
 
+            let slug = get_slug(&offer);
+
+            // NOTE: this partially moves offer which makes it a pain to borrow after
             let is_bundle = offer
                 .offer_type
                 .is_some_and(|ot| ot == epic::schema::OfferType::Bundle)
@@ -80,7 +103,7 @@ pub fn get_free_offers(
                         .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
                 });
 
-            let store_link = match offer.product_slug {
+            let store_link = match slug {
                 Some(slug) if is_bundle => {
                     format!("https://store.epicgames.com/en-US/bundles/{slug}")
                 }
