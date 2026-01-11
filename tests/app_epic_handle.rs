@@ -116,4 +116,24 @@ mod fixture_tests {
             n2.get_messages()
         );
     }
+
+    #[test]
+    fn test_epic_handle_null_surface_product_slug() {
+        let (ts, ec, offer_store, n) = setup(
+            "2026-01-11T16:15:00.000Z",
+            include_str!("./fixtures/epic_null_surface_product_slug.json"),
+        );
+
+        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
+
+        let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
+        let expected: std::collections::HashSet<String> = [
+            "**Bloons TD 6** is now free on EGS! Ends <t:1768492800:R>\nhttps://www.epicgames.com/store/en-US/p/bloons-td-6-bf95a0"
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+
+        assert_eq!(msgs, expected);
+    }
 }
