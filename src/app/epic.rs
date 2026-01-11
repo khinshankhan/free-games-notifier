@@ -84,7 +84,6 @@ pub fn get_free_offers(
         .elements
         .into_iter()
         .filter_map(|offer| {
-            println!("Checking offer: {}", offer.title);
             let ends_at = free_promo_ends_at(&offer, now)?;
 
             if existing_offer_ids.contains_key(&offer.id) {
@@ -92,18 +91,16 @@ pub fn get_free_offers(
                 return None;
             }
 
-            let slug = get_slug(&offer);
-
-            // NOTE: this partially moves offer which makes it a pain to borrow after
             let is_bundle = offer
                 .offer_type
-                .is_some_and(|ot| ot == epic::schema::OfferType::Bundle)
-                || offer.categories.is_some_and(|cats| {
-                    cats.iter()
+                .as_ref()
+                .is_some_and(|ot| *ot == epic::schema::OfferType::Bundle)
+                || offer.categories.as_ref().is_some_and(|cats| {
+                    cats.into_iter()
                         .any(|ct| ct.path == "bundles" || ct.path == "bundles/games")
                 });
 
-            let store_link = match slug {
+            let store_link = match get_slug(&offer) {
                 Some(slug) if is_bundle => {
                     format!("https://store.epicgames.com/en-US/bundles/{slug}")
                 }
