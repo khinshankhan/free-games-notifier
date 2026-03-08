@@ -13,7 +13,20 @@ pub struct Config {
 
 #[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
 pub struct DiscordConfig {
-    pub webhook_url: Option<String>,
+    #[serde(default)]
+    pub targets: Vec<DiscordTargetConfig>,
+}
+
+impl DiscordConfig {
+    pub fn targets(&self) -> Vec<DiscordTargetConfig> {
+        self.targets.clone()
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct DiscordTargetConfig {
+    pub id: String,
+    pub webhook_url: String,
 }
 
 impl Config {
@@ -95,7 +108,7 @@ mod tests {
 
     #[test]
     fn config_defaults_when_no_file_exists() {
-        assert_eq!(Config::default().discord.webhook_url, None);
+        assert!(Config::default().discord.targets.is_empty());
     }
 
     #[test]
@@ -145,7 +158,8 @@ mod tests {
         fs::write(
             &path,
             r#"
-[discord]
+[[discord.targets]]
+id = "friends"
 webhook_url = "https://discord.example/webhook"
 "#,
         )
@@ -154,8 +168,63 @@ webhook_url = "https://discord.example/webhook"
         let config = Config::from_file(&path).unwrap();
 
         assert_eq!(
-            config.discord.webhook_url,
-            Some(String::from("https://discord.example/webhook"))
+            config.discord.targets,
+            vec![DiscordTargetConfig {
+                id: String::from("friends"),
+                webhook_url: String::from("https://discord.example/webhook"),
+            }]
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn loads_multiple_discord_targets() {
+        let root = unique_temp_dir();
+        let path = root.join(DEFAULT_CONFIG_FILE_NAME);
+
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            &path,
+            r#"
+[[discord.targets]]
+id = "friends"
+webhook_url = "https://discord.example/webhook-1"
+
+[[discord.targets]]
+id = "work"
+webhook_url = "https://discord.example/webhook-2"
+"#,
+        )
+        .unwrap();
+
+        let config = Config::from_file(&path).unwrap();
+
+        assert_eq!(
+            config.discord.targets,
+            vec![
+                DiscordTargetConfig {
+                    id: String::from("friends"),
+                    webhook_url: String::from("https://discord.example/webhook-1"),
+                },
+                DiscordTargetConfig {
+                    id: String::from("work"),
+                    webhook_url: String::from("https://discord.example/webhook-2"),
+                },
+            ]
+        );
+        assert_eq!(
+            config.discord.targets(),
+            vec![
+                DiscordTargetConfig {
+                    id: String::from("friends"),
+                    webhook_url: String::from("https://discord.example/webhook-1"),
+                },
+                DiscordTargetConfig {
+                    id: String::from("work"),
+                    webhook_url: String::from("https://discord.example/webhook-2"),
+                },
+            ]
         );
 
         fs::remove_dir_all(root).unwrap();

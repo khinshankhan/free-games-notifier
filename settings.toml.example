@@ -1,2 +1,7 @@
-[discord]
-webhook_url = "https://discord.com/api/webhooks/..."
+[[discord.targets]]
+id = "friends"
+webhook_url = "https://discord.com/api/webhooks/first-id/first-token"
+
+[[discord.targets]]
+id = "work"
+webhook_url = "https://discord.com/api/webhooks/second-id/second-token"

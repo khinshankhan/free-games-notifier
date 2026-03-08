@@ -10,8 +10,13 @@ Notifies about currently free games to claim.
 Create a `settings.toml` next to where you run the binary:
 
 ```toml
-[discord]
-webhook_url = "https://discord.com/api/webhooks/..."
+[[discord.targets]]
+id = "friends"
+webhook_url = "https://discord.com/api/webhooks/first-id/first-token"
+
+[[discord.targets]]
+id = "work"
+webhook_url = "https://discord.com/api/webhooks/second-id/second-token"
 ```
 
 Then hook it up to a cronjob. It should send a message with the game name and a link to redeem it.
@@ -21,8 +26,10 @@ Config loading is runtime-based:
 - `./free-games-notifier --config /path/to/settings.toml` uses the exact file you pass in.
 - Without `--config`, the app searches for the nearest `settings.toml` starting from the current working directory and walking upward.
 - If both `/srv/settings.toml` and `/srv/prod/free-games/settings.toml` exist, running from `/srv/prod/free-games` uses the more specific local file.
-- If no config file is found, the app falls back to built-in defaults and logs notifications to stdout instead of Discord.
+- If no config file is found, startup fails because at least one `discord.targets` entry is required.
 - The SQLite database path remains fixed at `offers.db` for now.
+- Each `discord.targets` entry needs a unique `id`. That `id` is what the app stores in SQLite to decide whether a given server has already been notified about an offer.
+- The app assumes the target-aware SQLite schema. Older `offers.db` files from before `target_id` support are not migrated automatically.
 
 An example file lives at [`settings.toml.example`](./settings.toml.example).
 

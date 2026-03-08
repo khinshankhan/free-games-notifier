@@ -8,6 +8,11 @@ pub struct Offer {
     ends_at: chrono::DateTime<chrono::Utc>,
 }
 
+pub struct NotifyTarget<'a> {
+    pub id: &'a str,
+    pub notifier: &'a dyn notifier::Notifier,
+}
+
 fn free_promo_ends_at(
     offer: &epic::schema::Offer,
     now: chrono::DateTime<chrono::Utc>,
@@ -125,19 +130,26 @@ pub fn handle(
     ts: &impl time::TimeSource,
     ec: &impl epic::http::HttpClient,
     store: &impl offer_store::OfferStore,
-    n: &dyn notifier::Notifier,
+    targets: &[NotifyTarget<'_>],
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut delivered_count = 0usize;
     let existing_offers = store.get_existing_offers()?;
+    let mut existing_offer_ids_by_target: std::collections::HashMap<
+        String,
+        std::collections::HashMap<String, i64>,
+    > = std::collections::HashMap::new();
 
-    let epic_free_offers = get_free_offers(
-        ts,
-        ec,
-        existing_offers
-            .into_iter()
-            .filter(|o| o.source == epic::SOURCE)
-            .map(|o| (o.id, o.ends_at))
-            .collect(),
-    )?;
+    for offer in existing_offers
+        .into_iter()
+        .filter(|o| o.source == epic::SOURCE)
+    {
+        existing_offer_ids_by_target
+            .entry(offer.target_id)
+            .or_default()
+            .insert(offer.id, offer.ends_at);
+    }
+
+    let epic_free_offers = get_free_offers(ts, ec, std::collections::HashMap::new())?;
 
     for offer in epic_free_offers {
         let ends_unix = offer.ends_at.timestamp();
@@ -148,8 +160,33 @@ pub fn handle(
             offer.title, offer.source, ends_rel, offer.link,
         );
 
-        n.notify(&message)?;
-        store.insert_offer(&offer.id, &offer.source, ends_unix)?;
+        for target in targets {
+            let already_sent = existing_offer_ids_by_target
+                .get(target.id)
+                .is_some_and(|existing| existing.contains_key(&offer.id));
+
+            if already_sent {
+                tracing::info!(target_id = target.id, title = %offer.title, "Offer already posted for target, skipping");
+                continue;
+            }
+
+            tracing::info!(target_id = target.id, title = %offer.title, "Sending offer to target");
+            target.notifier.notify(&message)?;
+            store.insert_offer(target.id, &offer.id, &offer.source, ends_unix)?;
+            delivered_count += 1;
+            tracing::info!(target_id = target.id, title = %offer.title, "Offer delivered to target");
+
+            existing_offer_ids_by_target
+                .entry(target.id.to_string())
+                .or_default()
+                .insert(offer.id.clone(), ends_unix);
+        }
+    }
+
+    if delivered_count == 0 {
+        tracing::info!("No new target deliveries were needed.");
+    } else {
+        tracing::info!(delivered_count, "Finished target deliveries");
     }
 
     Ok(())

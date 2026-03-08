@@ -5,6 +5,18 @@ use free_games_notifier::{app, epic, notifier, offer_store, time};
 mod fixture_tests {
     use super::*;
 
+    fn notify_targets<'a>(
+        entries: &'a [(&'a str, &'a dyn notifier::Notifier)],
+    ) -> Vec<app::epic::NotifyTarget<'a>> {
+        entries
+            .iter()
+            .map(|(id, notifier)| app::epic::NotifyTarget {
+                id,
+                notifier: *notifier,
+            })
+            .collect()
+    }
+
     fn setup(
         s: &str,
         resp: &str,
@@ -34,7 +46,9 @@ mod fixture_tests {
             include_str!("./fixtures/epic_single_promo.json"),
         );
 
-        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
+        let bindings = [("default", &n as &dyn notifier::Notifier)];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -54,7 +68,9 @@ mod fixture_tests {
             include_str!("./fixtures/epic_bundle_promo.json"),
         );
 
-        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
+        let bindings = [("default", &n as &dyn notifier::Notifier)];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -74,7 +90,9 @@ mod fixture_tests {
             include_str!("./fixtures/epic_multiple_promo.json"),
         );
 
-        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
+        let bindings = [("default", &n as &dyn notifier::Notifier)];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -97,7 +115,9 @@ mod fixture_tests {
             include_str!("./fixtures/epic_multiple_promo.json"),
         );
 
-        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
+        let bindings = [("default", &n as &dyn notifier::Notifier)];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
 
         // First run should emit both messages, refer to `test_epic_handle_multiple_promo` for details.
         assert_eq!(
@@ -108,7 +128,9 @@ mod fixture_tests {
 
         let n2 = notifier::CaptureNotifier::new();
         // Second run against SAME offer_store/db -> should emit nothing.
-        app::epic::handle(&ts, &ec, &offer_store, &n2).unwrap();
+        let bindings2 = [("default", &n2 as &dyn notifier::Notifier)];
+        let targets2 = notify_targets(&bindings2);
+        app::epic::handle(&ts, &ec, &offer_store, &targets2).unwrap();
 
         assert!(
             n2.get_messages().is_empty(),
@@ -124,7 +146,9 @@ mod fixture_tests {
             include_str!("./fixtures/epic_null_surface_product_slug.json"),
         );
 
-        app::epic::handle(&ts, &ec, &offer_store, &n).unwrap();
+        let bindings = [("default", &n as &dyn notifier::Notifier)];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
 
         let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
         let expected: std::collections::HashSet<String> = [
@@ -135,5 +159,43 @@ mod fixture_tests {
         .collect();
 
         assert_eq!(msgs, expected);
+    }
+
+    #[test]
+    fn test_epic_handle_tracks_sent_state_per_target() {
+        let (ts, ec, offer_store, friends) = setup(
+            "2025-12-20T16:15:00.000Z",
+            include_str!("./fixtures/epic_single_promo.json"),
+        );
+        let work = notifier::CaptureNotifier::new();
+
+        let bindings = [
+            ("friends", &friends as &dyn notifier::Notifier),
+            ("work", &work as &dyn notifier::Notifier),
+        ];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
+
+        assert_eq!(friends.get_messages().len(), 1);
+        assert_eq!(work.get_messages().len(), 1);
+
+        let friends_retry = notifier::CaptureNotifier::new();
+        let work_retry = notifier::CaptureNotifier::new();
+        let retry_bindings = [
+            ("friends", &friends_retry as &dyn notifier::Notifier),
+            ("work", &work_retry as &dyn notifier::Notifier),
+        ];
+        let retry_targets = notify_targets(&retry_bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &retry_targets).unwrap();
+
+        assert!(friends_retry.get_messages().is_empty());
+        assert!(work_retry.get_messages().is_empty());
+
+        let new_target = notifier::CaptureNotifier::new();
+        let new_target_binding = [("new-server", &new_target as &dyn notifier::Notifier)];
+        let new_target_only = notify_targets(&new_target_binding);
+        app::epic::handle(&ts, &ec, &offer_store, &new_target_only).unwrap();
+
+        assert_eq!(new_target.get_messages().len(), 1);
     }
 }
