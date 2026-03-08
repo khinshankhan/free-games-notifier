@@ -1,12 +1,14 @@
 use free_games_notifier::offer_store::OfferStore;
 use free_games_notifier::time::TimeSource;
-use free_games_notifier::{app, epic, notifier, offer_store, time};
+use free_games_notifier::{app, config, epic, notifier, offer_store, time};
 
-fn get_notifier() -> Box<dyn notifier::Notifier> {
-    let webhook_url = match std::env::var("DISCORD_WEBHOOK_URL") {
-        Ok(url) => url,
-        Err(_) => {
-            tracing::warn!("DISCORD_WEBHOOK_URL not set, falling back to logging notifier.");
+fn get_notifier(config: &config::Config) -> Box<dyn notifier::Notifier> {
+    let webhook_url = match config.discord.webhook_url.clone() {
+        Some(url) => url,
+        None => {
+            tracing::warn!(
+                "discord.webhook_url not configured, falling back to logging notifier."
+            );
             return Box::new(notifier::LoggingNotifier);
         }
     };
@@ -15,7 +17,16 @@ fn get_notifier() -> Box<dyn notifier::Notifier> {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    dotenvy::dotenv().ok();
+    let config_load = config::Config::from_cli_args(std::env::args_os())?;
+    let config = config_load.config;
+
+    match config_load.path {
+        Some(path) => tracing::info!("Using config file at {}", path.display()),
+        None => tracing::info!(
+            "No {} found in the current directory tree. Using built-in defaults.",
+            config::DEFAULT_CONFIG_FILE_NAME
+        ),
+    }
 
     let ts = time::SystemTimeSource;
 
@@ -25,7 +36,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     offer_store.prune_expired_offers(ts.now().timestamp())?;
 
     let ec = epic::http::Client;
-    let n = get_notifier();
+    let n = get_notifier(&config);
 
     app::epic::handle(&ts, &ec, &offer_store, &*n)?;
 

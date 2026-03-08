@@ -7,13 +7,24 @@ Notifies about currently free games to claim.
 
 ## Usage
 
-Throw in your discord webhook url into an `.env` likeso:
+Create a `settings.toml` next to where you run the binary:
 
-```bash
-DISCORD_WEBHOOK_URL="<your actual url>"
+```toml
+[discord]
+webhook_url = "https://discord.com/api/webhooks/..."
 ```
 
-and hook it up to a cronjob. It should send a message with the game name and a link to redeem it.
+Then hook it up to a cronjob. It should send a message with the game name and a link to redeem it.
+
+Config loading is runtime-based:
+
+- `./free-games-notifier --config /path/to/settings.toml` uses the exact file you pass in.
+- Without `--config`, the app searches for the nearest `settings.toml` starting from the current working directory and walking upward.
+- If both `/srv/settings.toml` and `/srv/prod/free-games/settings.toml` exist, running from `/srv/prod/free-games` uses the more specific local file.
+- If no config file is found, the app falls back to built-in defaults and logs notifications to stdout instead of Discord.
+- The SQLite database path remains fixed at `offers.db` for now.
+
+An example file lives at [`settings.toml.example`](./settings.toml.example).
 
 > [!TIP]
 > It's likely better to run the app with logs/ tracing enabled (`RUST_LOG=debug`) since there are a few useful logs like
