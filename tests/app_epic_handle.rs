@@ -109,6 +109,32 @@ mod fixture_tests {
     }
 
     #[test]
+    fn test_epic_handle_suffixed_product_slug() {
+        // `productSlug` may carry a page path suffix (e.g. "cardpocalypse/home"), which
+        // builds a link that redirects to a 404 site page. The catalogNs `pageSlug` is
+        // the bare store slug and must win.
+        let (ts, ec, offer_store, n) = setup(
+            "2026-08-22T12:00:00.000Z",
+            include_str!("./fixtures/epic_suffixed_product_slug.json"),
+        );
+
+        let bindings = [("default", &n as &dyn notifier::Notifier)];
+        let targets = notify_targets(&bindings);
+        app::epic::handle(&ts, &ec, &offer_store, &targets).unwrap();
+
+        let msgs: std::collections::HashSet<String> = n.get_messages().into_iter().collect();
+        let expected: std::collections::HashSet<String> = [
+            "**Cardpocalypse Standard Edition** is now free on EGS! Ends <t:1787842800:R>\n\
+             https://www.epicgames.com/store/en-US/p/cardpocalypse",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+
+        assert_eq!(msgs, expected);
+    }
+
+    #[test]
     fn test_epic_handle_multiple_promo_same_multi_run() {
         let (ts, ec, offer_store, n) = setup(
             "2026-01-01T16:15:00.000Z",

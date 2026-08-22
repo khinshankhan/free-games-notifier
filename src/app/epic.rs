@@ -48,11 +48,9 @@ fn free_promo_ends_at(
 }
 
 pub fn get_slug(offer: &epic::schema::Offer) -> Option<String> {
-    if let Some(slug) = &offer.product_slug {
-        return Some(slug.clone());
-    }
-
-    // fallback: try to get slug from catalog namespace mappings
+    // prefer catalog namespace mappings: productSlug is frequently suffixed with a
+    // page path (e.g. "cardpocalypse/home") which redirects to a 404 site page,
+    // while pageSlug is always the bare store slug
     if let Some(catalog_ns) = &offer.catalog_ns {
         if let Some(mappings) = &catalog_ns.mappings {
             for mapping in mappings {
@@ -60,6 +58,14 @@ pub fn get_slug(offer: &epic::schema::Offer) -> Option<String> {
                     return Some(page_slug.clone());
                 }
             }
+        }
+    }
+
+    // fallback: trim any trailing page path off productSlug
+    if let Some(slug) = &offer.product_slug {
+        let trimmed = slug.split('/').next().unwrap_or(slug);
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
         }
     }
 

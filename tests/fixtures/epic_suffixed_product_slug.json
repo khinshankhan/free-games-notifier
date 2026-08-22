@@ -1,0 +1,63 @@
+{
+  "data": {
+    "Catalog": {
+      "searchStore": {
+        "elements": [
+          {
+            "id": "b467b7d3570e44c0b84e59475f4a5636",
+            "title": "Cardpocalypse Standard Edition",
+            "price": {
+              "totalPrice": {
+                "discountPrice": 0
+              }
+            },
+            "productSlug": "cardpocalypse/home",
+            "categories": [
+              {
+                "path": "freegames"
+              },
+              {
+                "path": "games"
+              },
+              {
+                "path": "games/edition"
+              },
+              {
+                "path": "games/edition/base"
+              },
+              {
+                "path": "applications"
+              }
+            ],
+            "offerType": "BASE_GAME",
+            "promotions": {
+              "promotionalOffers": [
+                {
+                  "promotionalOffers": [
+                    {
+                      "startDate": "2026-08-20T15:00:00.000Z",
+                      "endDate": "2026-08-27T15:00:00.000Z",
+                      "discountSetting": {
+                        "discountType": "PERCENTAGE",
+                        "discountPercentage": 0
+                      }
+                    }
+                  ]
+                }
+              ],
+              "upcomingPromotionalOffers": []
+            },
+            "catalogNs": {
+              "mappings": [
+                {
+                  "pageSlug": "cardpocalypse",
+                  "pageType": "productHome"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
