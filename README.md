@@ -37,6 +37,26 @@ An example file lives at [`settings.toml.example`](./settings.toml.example).
 > It's likely better to run the app with logs/ tracing enabled (`RUST_LOG=debug`) since there are a few useful logs like
 > skipping if the offer was already posted (helpful to know why nothing was printed).
 
+### Docker
+
+The image runs the notifier on a schedule with [supercronic](https://github.com/aptible/supercronic). Nothing
+deployment-specific is baked in, so mount your own files:
+
+- `/etc/free-games-notifier/settings.toml` -- your config (see `settings.toml.example`).
+- `/etc/free-games-notifier/crontab` -- your schedule (see `crontab.example`).
+- `/data` -- a persistent volume; `offers.db` lives here.
+
+Set `TZ` (eg `TZ=Europe/Berlin`) to write the schedule in a timezone other than UTC.
+
+```sh
+docker build -t free-games-notifier .
+docker run -d \
+  -v free-games-notifier-data:/data \
+  -v "$PWD/settings.toml:/etc/free-games-notifier/settings.toml:ro" \
+  -v "$PWD/crontab:/etc/free-games-notifier/crontab:ro" \
+  free-games-notifier
+```
+
 ## Contributing
 
 Bug reports and PRs are welcome. Please open an issue first for discussion.
