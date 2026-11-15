@@ -1,0 +1,3 @@
+# Mount your own copy at /etc/free-games-notifier/crontab.
+# Times use the container's TZ env var (UTC if unset).
+0 12 * * * free-games-notifier --config /etc/free-games-notifier/settings.toml
